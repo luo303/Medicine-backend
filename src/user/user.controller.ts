@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post, Param } from '@nestjs/common';
+import { Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -31,12 +31,5 @@ export class UserController {
     } as User;
 
     return this.userService.create(user);
-  }
-
-  @Get('/profile/:id')
-  getProfile(@Param('id') id: number): any {
-    console.log(id);
-
-    return this.userService.findProfile(id);
   }
 }

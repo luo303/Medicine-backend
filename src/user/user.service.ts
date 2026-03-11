@@ -1,12 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+
 import { User } from './user.entity';
 import { Repository } from 'typeorm';
-import { TOKENS } from '../../contain';
 import { HttpException, HttpStatus } from '@nestjs/common';
 @Injectable()
 export class UserService {
   constructor(
-    @Inject(TOKENS.USER_REPOSITORY)
+    @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {}
 
@@ -51,23 +52,5 @@ export class UserService {
   async remove(id: number) {
     const result = await this.userRepository.delete(id);
     return result;
-  }
-  async findProfile(id: number) {
-    const profile = await this.userRepository.findOne({
-      where: {
-        id,
-      },
-      relations: ['profile'],
-    });
-    if (!profile) {
-      throw new HttpException(
-        {
-          status: HttpStatus.NOT_FOUND,
-          message: 'Profile not found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-    return profile;
   }
 }
