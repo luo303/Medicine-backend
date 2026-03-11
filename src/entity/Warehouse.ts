@@ -3,6 +3,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { StorageLocation } from './StorageLocation';
 
 @Entity('warehouse')
+//仓库表
 export class Warehouse {
   @PrimaryGeneratedColumn({ comment: '仓库ID' })
   id: number;

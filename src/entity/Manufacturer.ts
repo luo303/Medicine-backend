@@ -4,6 +4,7 @@ import { PurchaseStorage } from './PurchaseStorage';
 import { SalesDetail } from './SalesDetail';
 
 @Entity('manufacturer')
+//生产企业表
 export class Manufacturer {
   @PrimaryColumn({ length: 50, comment: '企业批准号' })
   approval_no: string;

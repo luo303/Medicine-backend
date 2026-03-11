@@ -11,6 +11,7 @@ import { Manufacturer } from './Manufacturer';
 import { Drug } from './Drug';
 
 @Entity('sales_detail')
+//销售订单明细表
 export class SalesDetail {
   @PrimaryGeneratedColumn({ comment: '明细ID' })
   id: number;

@@ -10,6 +10,7 @@ import { PurchaseOrder } from './PurchaseOrder';
 import { Drug } from './Drug';
 
 @Entity('purchase_detail')
+//采购订单明细表
 export class PurchaseDetail {
   @PrimaryGeneratedColumn({ comment: '明细ID' })
   id: number;

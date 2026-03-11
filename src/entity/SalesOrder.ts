@@ -21,6 +21,7 @@ export enum SalesOrderStatus {
 }
 
 @Entity('sales_order')
+//销售订单主表
 export class SalesOrder {
   @PrimaryColumn({ length: 50, comment: '销售单号' })
   order_no: string;

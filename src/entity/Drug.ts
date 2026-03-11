@@ -7,6 +7,7 @@ import { SalesOutbound } from './SalesOutbound';
 import { Inventory } from './Inventory';
 
 @Entity('drug')
+//药品目录表
 export class Drug {
   @PrimaryColumn({ length: 50, comment: '药品批准号' })
   approval_no: string;

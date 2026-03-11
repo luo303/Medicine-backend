@@ -11,6 +11,7 @@ import { Warehouse } from './Warehouse';
 
 @Entity('storage_location')
 @Unique(['warehouse', 'code'])
+//货位表
 export class StorageLocation {
   @PrimaryGeneratedColumn({ comment: '货位ID' })
   id: number;

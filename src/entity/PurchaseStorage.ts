@@ -12,6 +12,7 @@ import { Manufacturer } from './Manufacturer';
 import { Drug } from './Drug';
 
 @Entity('purchase_storage')
+//采购订单入库表
 export class PurchaseStorage {
   @PrimaryGeneratedColumn({ comment: '入库记录ID' })
   id: number;

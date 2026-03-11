@@ -18,7 +18,7 @@ import { Warehouse } from './entity/Warehouse';
 import { Manufacturer } from './entity/Manufacturer';
 import { MedicalInstitution } from './entity/MedicalInstitution';
 import { StorageLocation } from './entity/StorageLocation';
-import { ManufacturerModule } from './manufacturer/manufacturer.module';
+import { BasicModule } from './module/basic/basic.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -48,9 +48,9 @@ import { ManufacturerModule } from './manufacturer/manufacturer.module';
         MedicalInstitution,
         StorageLocation,
       ],
-      synchronize: true,
+      synchronize: false,
     }),
-    ManufacturerModule,
+    BasicModule,
   ],
   controllers: [],
   providers: [

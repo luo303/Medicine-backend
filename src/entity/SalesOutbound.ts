@@ -12,6 +12,7 @@ import { MedicalInstitution } from './MedicalInstitution';
 import { Drug } from './Drug';
 
 @Entity('sales_outbound')
+//销售订单出库表
 export class SalesOutbound {
   @PrimaryGeneratedColumn({ comment: '出库记录ID' })
   id: number;

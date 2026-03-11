@@ -18,6 +18,7 @@ import { Drug } from './Drug';
   'batch_no',
   'production_date',
 ])
+//库存表
 export class Inventory {
   @PrimaryGeneratedColumn({ comment: '库存ID' })
   id: number;

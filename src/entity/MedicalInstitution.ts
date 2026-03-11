@@ -4,6 +4,7 @@ import { SalesOrder } from './SalesOrder';
 import { SalesOutbound } from './SalesOutbound';
 
 @Entity('medical_institution')
+//医疗机构表
 export class MedicalInstitution {
   @PrimaryColumn({ length: 50, comment: '机构批准号' })
   approval_no: string;
