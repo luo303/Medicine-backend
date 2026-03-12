@@ -1,8 +1,12 @@
 import { Module } from '@nestjs/common';
+import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import configload from './configuration';
 // import { APP_FILTER } from '@nestjs/core';
 // import { HttpExceptionFilter } from './filters/http-exception.filter';
+import { AuthModule } from './auth/auth.module';
+import { AuthGuard } from './auth/auth.guard';
+import { APP_GUARD } from '@nestjs/core';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TransformInterceptor } from './interceptor/transform.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -19,6 +23,8 @@ import { Manufacturer } from './entity/Manufacturer';
 import { MedicalInstitution } from './entity/MedicalInstitution';
 import { StorageLocation } from './entity/StorageLocation';
 import { BasicModule } from './module/basic/basic.module';
+import { User } from './user/user.entity';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,7 +39,7 @@ import { BasicModule } from './module/basic/basic.module';
       port: 3306,
       username: 'root',
       password: 'example',
-      database: 'medicine',
+      database: 'testdb',
       entities: [
         Drug,
         PurchaseDetail,
@@ -47,10 +53,13 @@ import { BasicModule } from './module/basic/basic.module';
         Manufacturer,
         MedicalInstitution,
         StorageLocation,
+        User,
       ],
       synchronize: false,
     }),
     BasicModule,
+    UserModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [
@@ -58,6 +67,10 @@ import { BasicModule } from './module/basic/basic.module';
     //   provide: APP_FILTER,
     //   useClass: HttpExceptionFilter,
     // },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
