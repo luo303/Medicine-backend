@@ -39,7 +39,7 @@ import { User } from './user/user.entity';
       port: 3306,
       username: 'root',
       password: 'example',
-      database: 'testdb',
+      database: 'medicine',
       entities: [
         Drug,
         PurchaseDetail,
