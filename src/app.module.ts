@@ -24,6 +24,7 @@ import { MedicalInstitution } from './entity/MedicalInstitution';
 import { StorageLocation } from './entity/StorageLocation';
 import { BasicModule } from './module/basic/basic.module';
 import { User } from './user/user.entity';
+import { AiModule } from './module/ai/ai.module';
 
 @Module({
   imports: [
@@ -31,7 +32,6 @@ import { User } from './user/user.entity';
       isGlobal: true,
       // envFilePath,
       load: [configload],
-      ignoreEnvFile: true,
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
@@ -60,6 +60,7 @@ import { User } from './user/user.entity';
     BasicModule,
     UserModule,
     AuthModule,
+    AiModule,
   ],
   controllers: [],
   providers: [
