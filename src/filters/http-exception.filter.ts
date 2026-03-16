@@ -4,22 +4,29 @@ import {
   ArgumentsHost,
   HttpException,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import { Response } from 'express';
+
+type HttpExceptionResponse = string | { message?: string | string[] };
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
     const status = exception.getStatus();
-    console.log(exception);
-
+    const httpResponse = exception.getResponse() as HttpExceptionResponse;
+    let message = 'Unknown error';
+    if (typeof httpResponse === 'string') {
+      message = httpResponse;
+    } else if (httpResponse?.message) {
+      message = Array.isArray(httpResponse.message)
+        ? httpResponse.message.join(', ')
+        : httpResponse.message;
+    }
     response.status(status).json({
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      message: exception.message,
-      path: request.url,
+      code: status,
+      message: message,
+      data: null,
     });
   }
 }

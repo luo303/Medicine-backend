@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 // import { HttpAdapterHost } from '@nestjs/core';
 // import { AllExceptionsFilter } from './filters/all-exception.filter';
 import { HttpExceptionFilter } from './filters/http-exception.filter';
+import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger:
@@ -16,6 +17,11 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
   //根模块注册了，这里就需要了，不然会重叠
   // app.useGlobalInterceptors(new TransformInterceptor());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+    }),
+  );
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap().catch((err) => {
