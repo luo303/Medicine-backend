@@ -10,22 +10,10 @@ import { APP_GUARD } from '@nestjs/core';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TransformInterceptor } from './interceptor/transform.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Drug } from './entity/Drug';
-import { PurchaseDetail } from './entity/PurchaseDetail';
-import { PurchaseStorage } from './entity/PurchaseStorage';
-import { PurchaseOrder } from './entity/PurchaseOrder';
-import { SalesDetail } from './entity/SalesDetail';
-import { SalesOutbound } from './entity/SalesOutbound';
-import { SalesOrder } from './entity/SalesOrder';
-import { Inventory } from './entity/Inventory';
-import { Warehouse } from './entity/Warehouse';
-import { Manufacturer } from './entity/Manufacturer';
-import { MedicalInstitution } from './entity/MedicalInstitution';
-import { StorageLocation } from './entity/StorageLocation';
 import { BasicModule } from './module/basic/basic.module';
-import { User } from './user/user.entity';
 import { AiModule } from './module/ai/ai.module';
 
+import { basic } from '../ormconfig';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,30 +21,7 @@ import { AiModule } from './module/ai/ai.module';
       // envFilePath,
       load: [configload],
     }),
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: 'example',
-      database: 'medicine',
-      entities: [
-        Drug,
-        PurchaseDetail,
-        PurchaseStorage,
-        PurchaseOrder,
-        SalesDetail,
-        SalesOutbound,
-        SalesOrder,
-        Inventory,
-        Warehouse,
-        Manufacturer,
-        MedicalInstitution,
-        StorageLocation,
-        User,
-      ],
-      synchronize: false,
-    }),
+    TypeOrmModule.forRoot(basic),
     BasicModule,
     UserModule,
     AuthModule,
