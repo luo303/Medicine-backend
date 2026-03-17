@@ -25,7 +25,7 @@ export class Drug {
   specification: string;
 
   @Column({ type: 'boolean', nullable: true, comment: '是否处方药' })
-  is_rescription: boolean;
+  is_prescription: boolean;
 
   // 关联关系
   @OneToMany(() => PurchaseDetail, (purchaseDetail) => purchaseDetail.drug)

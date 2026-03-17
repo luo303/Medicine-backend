@@ -8,4 +8,6 @@ const envFilePath = path.join(
   `../../config/config.${process.env.NODE_ENV || 'development'}.yml`,
 );
 const fileContent = fs.readFileSync(envFilePath, 'utf-8');
-export default () => yml.load(fileContent) as Record<string, any>;
+const config = () => yml.load(fileContent) as Record<string, any>;
+console.log(config());
+export default config;

@@ -15,13 +15,16 @@ import { StorageLocation } from './src/entity/StorageLocation';
 import { User } from './src/user/user.entity';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 
+import config from './src/configuration';
+import { config as configInterface } from './contain';
+const configData = config() as configInterface;
 export const basic = {
-  type: 'mysql',
-  host: 'localhost',
-  port: 3306,
-  username: 'root',
-  password: 'example',
-  database: 'medicine',
+  type: configData.DB.type,
+  host: configData.DB.host,
+  port: configData.DB.port,
+  username: configData.DB.username,
+  password: configData.DB.password,
+  database: configData.DB.database,
   entities: [
     Drug,
     PurchaseDetail,
