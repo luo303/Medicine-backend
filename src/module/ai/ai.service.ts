@@ -232,17 +232,28 @@ export class AiService {
 
       usedTools.push({ name: functionName, args: functionArgs });
 
+      console.log(`\n🔧 调用工具：${functionName}`);
+      console.log('参数:', JSON.stringify(functionArgs, null, 2));
+
       try {
         const toolOutput = await this.executeFunction(
           functionName,
           functionArgs as Record<string, any>,
         );
+        console.log('✅ 工具执行成功');
+        console.log('返回:', JSON.stringify(toolOutput, null, 2));
+
         toolResults.push({
           role: 'tool',
           content: JSON.stringify(toolOutput),
           tool_call_id: toolCall.id,
         });
       } catch (error: any) {
+        console.log(
+          '❌ 工具执行失败:',
+          error instanceof Error ? error.message : String(error),
+        );
+
         toolResults.push({
           role: 'tool',
           content: JSON.stringify({
@@ -264,6 +275,9 @@ export class AiService {
     stream: ReadableStream;
     usedTools: UsedTool[];
   }> {
+    console.log('\n💬 AI 对话开始');
+    console.log('用户消息:', messages[messages.length - 1]?.content);
+
     const first = await this.createChatCompletion(messages, {
       temperature: 0.7,
       tools: this.getTools(),
@@ -277,12 +291,14 @@ export class AiService {
 
     const toolCalls = firstMessage.tool_calls || [];
     if (toolCalls.length === 0) {
+      console.log('📝 AI 直接回复，无需调用工具');
       const stream = await this.createChatStream(messages, {
         temperature: 1.0,
       });
       return { stream, usedTools: [] };
     }
 
+    console.log(`🎯 AI 请求调用 ${toolCalls.length} 个工具`);
     const { toolResults, usedTools } = await this.runToolCalls(toolCalls);
     const enhancedMessages: OutboundMessage[] = [
       ...messages,
@@ -290,6 +306,7 @@ export class AiService {
       ...toolResults,
     ];
 
+    console.log('\n🔄 使用工具结果进行第二轮对话');
     const stream = await this.createChatStream(enhancedMessages, {
       temperature: 0.7,
     });
@@ -298,10 +315,15 @@ export class AiService {
   }
 
   async chatWithData(messages: BasicMessage[]): Promise<ChatResponse> {
+    console.log('\n💬 AI 对话开始（带数据查询）');
+    console.log('用户消息:', messages[messages.length - 1]?.content);
+
     let conversation: OutboundMessage[] = messages;
     const usedTools: UsedTool[] = [];
 
     for (let round = 0; round < 3; round++) {
+      console.log(`\n🔄 第 ${round + 1} 轮对话`);
+
       const result = await this.createChatCompletion(conversation, {
         temperature: 0.7,
         tools: this.getTools(),
@@ -315,12 +337,15 @@ export class AiService {
 
       const toolCalls = message.tool_calls || [];
       if (toolCalls.length === 0) {
+        console.log('📝 AI 生成最终回复');
+        console.log('回复内容:', message.content);
         return {
           reply: message.content || '抱歉，我无法回答这个问题',
           usedTools,
         };
       }
 
+      console.log(`🎯 AI 请求调用 ${toolCalls.length} 个工具`);
       const { toolResults, usedTools: used } =
         await this.runToolCalls(toolCalls);
       usedTools.push(...used);
