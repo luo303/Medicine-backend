@@ -1,361 +1,210 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ChatOllama } from '@langchain/ollama';
+import { createAgent } from 'langchain';
 import { DrugService } from '../basic/drug/drug.service';
 import { WarehouseService } from '../basic/warehouse/warehouse.service';
-import { Inventory } from '@/entity/Inventory';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Inventory } from '@/entity/Inventory';
 import { Repository } from 'typeorm';
+import { ChatResponse, ChatMessage, ToolUsage } from './tools/tool.types';
 import {
-  ToolRegistry,
-  ChatResponse,
-  ToolCall,
-  ToolResult,
-  ChatMessage,
-} from './tools';
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+  ToolMessage,
+  BaseMessage,
+} from '@langchain/core/messages';
 import { createDrugTools } from './tools/drug.tools';
 import { createWarehouseTools } from './tools/warehouse.tools';
 import { createInventoryTools } from './tools/inventory.tools';
+import { searchDocsTool } from './tools/searchDocTool';
 
-type ToolArgs = Record<string, unknown>;
-type UsedTool = { name: string; args: ToolArgs };
+/**
+ * 定义 Agent 调用返回的状态结构
+ */
+interface AgentState {
+  messages: BaseMessage[];
+}
 
-type BasicMessage = { role: string; content: string };
-
-type OutboundMessage = {
-  role: string;
-  content?: string | null;
-  tool_calls?: ToolCall[];
-  tool_call_id?: string;
-};
-
-type ZhipuChatMessage = OutboundMessage & Pick<ChatMessage, 'role'>;
-
-type ZhipuChatCompletionResult = {
-  choices?: Array<{
-    message?: ZhipuChatMessage;
+/**
+ * 定义具有工具调用的消息接口
+ */
+interface MessageWithToolCalls extends BaseMessage {
+  tool_calls?: Array<{
+    name: string;
+    args: Record<string, any>;
+    id?: string;
   }>;
-  error?: {
-    code?: string;
-    message?: string;
-  };
-};
+}
+
+/**
+ * 定义 Agent 接口以避免 any
+ */
+interface IAgent {
+  invoke(input: { messages: BaseMessage[] }): Promise<AgentState>;
+  stream(
+    input: { messages: BaseMessage[] },
+    options?: { streamMode?: string },
+  ): Promise<AsyncIterable<[BaseMessage, any]>>;
+}
 
 @Injectable()
-export class AiService {
-  private toolRegistry: ToolRegistry;
+export class AiService implements OnModuleInit {
+  private agent: IAgent | null = null;
 
   constructor(
-    private configService: ConfigService,
-    private drugService: DrugService,
-    private warehouseService: WarehouseService,
+    private readonly drugService: DrugService,
+    private readonly warehouseService: WarehouseService,
     @InjectRepository(Inventory)
-    private inventoryRepository: Repository<Inventory>,
-  ) {
-    this.toolRegistry = new ToolRegistry();
+    private readonly inventoryRepository: Repository<Inventory>,
+  ) {}
 
-    const drugTools = createDrugTools(this.drugService);
-    const warehouseTools = createWarehouseTools(this.warehouseService);
-    const inventoryTools = createInventoryTools(this.inventoryRepository);
-
-    [...drugTools, ...warehouseTools, ...inventoryTools].forEach((tool) =>
-      this.toolRegistry.register(tool),
-    );
+  onModuleInit() {
+    this.init();
   }
 
-  private getApiKey(): string {
-    const apiKey = this.configService.get<string>('AI.ZHIPU_API_KEY');
-    if (!apiKey) {
-      throw new HttpException(
-        'AI.ZHIPU_API_KEY 未配置',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+  init() {
+    const model = new ChatOllama({
+      model: 'gpt-oss:120b-cloud',
+      temperature: 0,
+    });
+
+    const tools = [
+      ...createDrugTools(this.drugService),
+      ...createWarehouseTools(this.warehouseService),
+      ...createInventoryTools(this.inventoryRepository, this.warehouseService),
+      searchDocsTool,
+    ];
+
+    this.agent = createAgent({
+      model: model,
+      tools: tools,
+      systemPrompt: `你是一个医药系统的智能助手，你的职责是帮助用户查询系统数据。
+
+## 可用的工具
+你可以通过调用以下工具来获取数据：
+- query_drug_list: 查询药品目录列表
+- query_warehouse_list: 查询仓库列表  
+- query_inventory: 查询药品库存
+- search_langchain_docs: 搜索 LangChain 文档来回答关于 LCEL、表达式语言的问题
+
+## 重要规则
+1. 当用户询问药品、仓库或库存相关问题时，你必须调用相应的工具来获取数据
+2. 禁止编造数据，必须基于工具返回的真实结果来回答
+3. 如果不确定用户指的是什么，可以先调用相关工具查看所有数据
+4. 回答要简洁明了，直接展示查询结果`,
+    }) as unknown as IAgent;
+  }
+
+  async chatWithData(messages: ChatMessage[]): Promise<ChatResponse> {
+    if (!this.agent) {
+      throw new Error('Agent not initialized');
     }
-    return apiKey;
-  }
+    const input = {
+      messages: this.convertMessages(messages),
+    };
 
-  private getApiUrl(): string {
-    return (
-      this.configService.get<string>('AI.ZHIPU_BASE_URL') ||
-      'https://open.bigmodel.cn/api/paas/v4/chat/completions'
-    );
-  }
+    const result = await this.agent.invoke(input);
+    const lastMessage = result.messages[result.messages.length - 1];
 
-  private getModel(): string {
-    return this.configService.get<string>('AI.ZHIPU_MODEL') || 'glm-4-plus';
-  }
-
-  private getTools() {
-    return this.toolRegistry.getAll();
-  }
-
-  private async executeFunction(
-    name: string,
-    args: Record<string, any>,
-  ): Promise<unknown> {
-    return this.toolRegistry.execute(name, args);
-  }
-
-  private safeJsonParseObject(value: string): ToolArgs {
-    if (!value || typeof value !== 'string') return {};
-    const trimmed = value.trim();
-    if (!trimmed) return {};
-    const parsed = JSON.parse(trimmed) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return {};
+    // 提取使用的工具信息
+    const usedTools: ToolUsage[] = [];
+    for (const msg of result.messages) {
+      const msgWithTools = msg as MessageWithToolCalls;
+      if (msgWithTools.additional_kwargs?.tool_calls) {
+        const toolCalls = msgWithTools.additional_kwargs.tool_calls as Array<{
+          function?: { name?: string; arguments?: string };
+        }>;
+        for (const tc of toolCalls) {
+          usedTools.push({
+            name: tc.function?.name || '',
+            args: JSON.parse(tc.function?.arguments || '{}') as Record<
+              string,
+              any
+            >,
+          });
+        }
+      }
+      if (msgWithTools.tool_calls && Array.isArray(msgWithTools.tool_calls)) {
+        for (const tc of msgWithTools.tool_calls) {
+          usedTools.push({ name: tc.name, args: tc.args });
+        }
+      }
     }
-    return parsed as ToolArgs;
-  }
 
-  private normalizeAssistantMessage(
-    message: ZhipuChatMessage,
-  ): OutboundMessage {
     return {
-      ...message,
-      content: message.content ?? '',
+      reply:
+        typeof lastMessage.content === 'string'
+          ? lastMessage.content
+          : JSON.stringify(lastMessage.content),
+      usedTools,
     };
   }
 
-  private async postChat(payload: Record<string, any>): Promise<{
-    response: globalThis.Response;
-    json?: ZhipuChatCompletionResult;
-  }> {
-    const apiKey = this.getApiKey();
-    const url = this.getApiUrl();
-
-    let response: globalThis.Response;
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '调用上游失败';
-      throw new HttpException(message, HttpStatus.BAD_GATEWAY);
+  /**
+   * 返回流式对话结果
+   */
+  chatStreamWithToolCalling(messages: ChatMessage[]) {
+    if (!this.agent) {
+      throw new Error('Agent not initialized');
     }
+    const input = {
+      messages: this.convertMessages(messages),
+    };
 
-    if (payload.stream === true) {
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new HttpException(errorText || '上游返回异常', response.status);
-      }
-      return { response };
-    }
+    const usedTools: ToolUsage[] = [];
 
-    let json: ZhipuChatCompletionResult | undefined;
-    try {
-      json = (await response.json()) as ZhipuChatCompletionResult;
-    } catch {
-      const errorText = await response.text().catch(() => '');
-      throw new HttpException(
-        errorText || '上游响应不是合法 JSON',
-        HttpStatus.BAD_GATEWAY,
-      );
-    }
+    const stream = new ReadableStream({
+      start: async (controller) => {
+        try {
+          if (!this.agent) return;
+          const events = await this.agent.stream(input, {
+            streamMode: 'messages',
+          });
+          for await (const [message] of events) {
+            // 检查工具调用
+            const msgWithTools = message as MessageWithToolCalls;
+            if (
+              msgWithTools.tool_calls &&
+              Array.isArray(msgWithTools.tool_calls)
+            ) {
+              for (const tc of msgWithTools.tool_calls) {
+                usedTools.push({ name: tc.name, args: tc.args });
+              }
+            }
 
-    if (!response.ok) {
-      throw new HttpException(
-        json?.error?.message || '上游返回异常',
-        response.status,
-      );
-    }
-
-    return { response, json };
-  }
-
-  private async createChatCompletion(
-    messages: OutboundMessage[],
-    options?: { temperature?: number; tools?: unknown[]; tool_choice?: string },
-  ): Promise<ZhipuChatCompletionResult> {
-    const model = this.getModel();
-    const { json } = await this.postChat({
-      model,
-      messages,
-      temperature: options?.temperature ?? 0.7,
-      stream: false,
-      tools: options?.tools,
-      tool_choice: options?.tool_choice,
-    });
-    if (!json) {
-      throw new HttpException('AI 响应异常', HttpStatus.BAD_GATEWAY);
-    }
-    return json;
-  }
-
-  private async createChatStream(
-    messages: OutboundMessage[],
-    options?: { temperature?: number },
-  ): Promise<ReadableStream> {
-    const model = this.getModel();
-    const { response } = await this.postChat({
-      model,
-      messages,
-      temperature: options?.temperature ?? 1.0,
-      stream: true,
-    });
-
-    if (!response.body) {
-      throw new HttpException(
-        'Response body is null - streaming not supported',
-        HttpStatus.BAD_GATEWAY,
-      );
-    }
-
-    return response.body;
-  }
-
-  private async runToolCalls(toolCalls: ToolCall[]): Promise<{
-    toolResults: ToolResult[];
-    usedTools: UsedTool[];
-  }> {
-    const toolResults: ToolResult[] = [];
-    const usedTools: UsedTool[] = [];
-
-    for (const toolCall of toolCalls) {
-      const functionName = toolCall.function.name;
-      let functionArgs: ToolArgs = {};
-
-      try {
-        functionArgs = this.safeJsonParseObject(toolCall.function.arguments);
-      } catch {
-        toolResults.push({
-          role: 'tool',
-          content: JSON.stringify({ error: '工具参数不是合法 JSON' }),
-          tool_call_id: toolCall.id,
-        });
-        usedTools.push({ name: functionName, args: {} });
-        continue;
-      }
-
-      usedTools.push({ name: functionName, args: functionArgs });
-
-      console.log(`\n🔧 调用工具：${functionName}`);
-      console.log('参数:', JSON.stringify(functionArgs, null, 2));
-
-      try {
-        const toolOutput = await this.executeFunction(
-          functionName,
-          functionArgs as Record<string, any>,
-        );
-        console.log('✅ 工具执行成功');
-        console.log('返回:', JSON.stringify(toolOutput, null, 2));
-
-        toolResults.push({
-          role: 'tool',
-          content: JSON.stringify(toolOutput),
-          tool_call_id: toolCall.id,
-        });
-      } catch (error: any) {
-        console.log(
-          '❌ 工具执行失败:',
-          error instanceof Error ? error.message : String(error),
-        );
-
-        toolResults.push({
-          role: 'tool',
-          content: JSON.stringify({
-            error: error instanceof Error ? error.message : String(error),
-          }),
-          tool_call_id: toolCall.id,
-        });
-      }
-    }
-
-    return { toolResults, usedTools };
-  }
-
-  async callZhipuAPI(messages: BasicMessage[]): Promise<ReadableStream> {
-    return this.createChatStream(messages);
-  }
-
-  async chatStreamWithToolCalling(messages: BasicMessage[]): Promise<{
-    stream: ReadableStream;
-    usedTools: UsedTool[];
-  }> {
-    console.log('\n💬 AI 对话开始');
-    console.log('用户消息:', messages[messages.length - 1]?.content);
-
-    const first = await this.createChatCompletion(messages, {
-      temperature: 0.7,
-      tools: this.getTools(),
-      tool_choice: 'auto',
-    });
-
-    const firstMessage = first.choices?.[0]?.message;
-    if (!firstMessage) {
-      throw new HttpException('AI 响应异常', HttpStatus.BAD_GATEWAY);
-    }
-
-    const toolCalls = firstMessage.tool_calls || [];
-    if (toolCalls.length === 0) {
-      console.log('📝 AI 直接回复，无需调用工具');
-      const stream = await this.createChatStream(messages, {
-        temperature: 1.0,
-      });
-      return { stream, usedTools: [] };
-    }
-
-    console.log(`🎯 AI 请求调用 ${toolCalls.length} 个工具`);
-    const { toolResults, usedTools } = await this.runToolCalls(toolCalls);
-    const enhancedMessages: OutboundMessage[] = [
-      ...messages,
-      this.normalizeAssistantMessage(firstMessage),
-      ...toolResults,
-    ];
-
-    console.log('\n🔄 使用工具结果进行第二轮对话');
-    const stream = await this.createChatStream(enhancedMessages, {
-      temperature: 0.7,
+            // 发送内容块（模拟 Zhipu 响应格式以保持 controller 兼容性）
+            if (message.content && typeof message.content === 'string') {
+              const chunk = {
+                choices: [{ delta: { content: message.content } }],
+              };
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\n`),
+              );
+            }
+          }
+          controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (err) {
+          controller.error(err);
+        }
+      },
     });
 
     return { stream, usedTools };
   }
 
-  async chatWithData(messages: BasicMessage[]): Promise<ChatResponse> {
-    console.log('\n💬 AI 对话开始（带数据查询）');
-    console.log('用户消息:', messages[messages.length - 1]?.content);
-
-    let conversation: OutboundMessage[] = messages;
-    const usedTools: UsedTool[] = [];
-
-    for (let round = 0; round < 3; round++) {
-      console.log(`\n🔄 第 ${round + 1} 轮对话`);
-
-      const result = await this.createChatCompletion(conversation, {
-        temperature: 0.7,
-        tools: this.getTools(),
-        tool_choice: 'auto',
-      });
-
-      const message = result.choices?.[0]?.message;
-      if (!message) {
-        throw new HttpException('AI 响应异常', HttpStatus.BAD_GATEWAY);
-      }
-
-      const toolCalls = message.tool_calls || [];
-      if (toolCalls.length === 0) {
-        console.log('📝 AI 生成最终回复');
-        console.log('回复内容:', message.content);
-        return {
-          reply: message.content || '抱歉，我无法回答这个问题',
-          usedTools,
-        };
-      }
-
-      console.log(`🎯 AI 请求调用 ${toolCalls.length} 个工具`);
-      const { toolResults, usedTools: used } =
-        await this.runToolCalls(toolCalls);
-      usedTools.push(...used);
-      conversation = [
-        ...conversation,
-        this.normalizeAssistantMessage(message),
-        ...toolResults,
-      ];
-    }
-
-    throw new HttpException('工具调用轮次过多', HttpStatus.BAD_GATEWAY);
+  private convertMessages(messages: ChatMessage[]): BaseMessage[] {
+    return messages.map((m) => {
+      if (m.role === 'user') return new HumanMessage(m.content);
+      if (m.role === 'assistant') return new AIMessage(m.content);
+      if (m.role === 'system') return new SystemMessage(m.content);
+      if (m.role === 'tool')
+        return new ToolMessage({
+          content: m.content,
+          tool_call_id: m.tool_call_id || '',
+        });
+      return new HumanMessage(m.content);
+    });
   }
 }

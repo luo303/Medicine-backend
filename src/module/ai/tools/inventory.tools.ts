@@ -1,69 +1,51 @@
-import { ToolHandler } from './tool-registry';
+import { tool } from '@langchain/core/tools';
+import { z } from 'zod';
 import { Inventory } from '@/entity/Inventory';
 import { Repository } from 'typeorm';
+import { WarehouseService } from '../../basic/warehouse/warehouse.service';
 
 export function createInventoryTools(
   inventoryRepository: Repository<Inventory>,
-): ToolHandler[] {
+  warehouseService: WarehouseService,
+) {
   return [
-    {
-      name: 'query_inventory',
-      definition: {
-        type: 'function' as const,
-        function: {
-          name: 'query_inventory',
-          description: '查询药品库存信息',
-          parameters: {
-            type: 'object',
-            properties: {
-              drug_name: {
-                type: 'string',
-                description: '药品名称',
-              },
-              warehouse_id: {
-                type: 'number',
-                description: '可选的仓库 ID',
-              },
-            },
-            required: ['drug_name'],
-          },
-        },
-      },
-      execute: async (args: Record<string, any>) => {
+    tool(
+      async ({ drug_name, warehouse_id }) => {
         const queryBuilder =
           inventoryRepository.createQueryBuilder('inventory');
-        let hasWhere = false;
+        queryBuilder.leftJoinAndSelect('inventory.drug', 'drug');
 
-        if (args.drug_name) {
-          const drugName = String(args.drug_name);
-          const searchPattern = '%' + drugName + '%';
-          queryBuilder
-            .innerJoin('inventory.drug', 'drug')
-            .where('drug.name LIKE :name', { name: searchPattern });
-          hasWhere = true;
+        if (drug_name) {
+          queryBuilder.andWhere('drug.name LIKE :name', {
+            name: `%${drug_name}%`,
+          });
         }
-
-        const warehouseIdRaw: unknown = args.warehouse_id;
-        const warehouseId = Number(warehouseIdRaw);
-        if (Number.isFinite(warehouseId) && warehouseId > 0) {
-          queryBuilder.innerJoin('inventory.warehouse', 'warehouse');
-          if (hasWhere) {
-            queryBuilder.andWhere('warehouse.id = :id', {
-              id: warehouseId,
+        if (warehouse_id) {
+          const warehouse = await warehouseService.findAll();
+          const target = warehouse.find((w) => w.id === warehouse_id);
+          if (target) {
+            queryBuilder.andWhere('inventory.warehouse_code = :code', {
+              code: target.code,
             });
-          } else {
-            queryBuilder.where('warehouse.id = :id', { id: warehouseId });
-            hasWhere = true;
           }
         }
-
         const inventories = await queryBuilder.getMany();
-        return inventories.map((i: Inventory) => ({
-          drug_name: i.drug?.name,
-          warehouse_name: i.warehouse_code,
-          stock_quantity: i.quantity,
-        }));
+        return JSON.stringify(
+          inventories.map((i: Inventory) => ({
+            drug_name: i.drug?.name || i.drug_name,
+            warehouse_name: i.warehouse_code,
+            stock_quantity: i.quantity,
+          })),
+        );
       },
-    },
+      {
+        name: 'query_inventory',
+        description: '查询药品库存信息',
+        schema: z.object({
+          drug_name: z.string().describe('药品名称'),
+          warehouse_id: z.number().optional().describe('可选的仓库 ID'),
+        }),
+      },
+    ),
   ];
 }
