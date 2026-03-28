@@ -2,10 +2,15 @@ import { MakeRetriver } from './loader';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
+let retriever: any = null;
+
 export const searchDocsTool = tool(
   async ({ query }) => {
     console.log(`\n[工具调用] 正在搜索: "${query}"`);
-    const retriever = await MakeRetriver();
+    // ✅ 优化：只在第一次调用时初始化，避免重复加载文档导致 fetch failed 或超时
+    if (!retriever) {
+      retriever = await MakeRetriver();
+    }
     const results = await retriever.invoke(query);
     if (results.length === 0) return '未找到相关文档。';
     return results

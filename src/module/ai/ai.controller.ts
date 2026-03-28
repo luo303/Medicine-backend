@@ -27,7 +27,6 @@ export class AiController {
         return;
       }
 
-      // ✅ 这里的调用逻辑严格按照你提供的脚本实现
       const input = {
         messages: this.convertMessages(messages),
       };
@@ -36,19 +35,45 @@ export class AiController {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      // ✅ 具体调用在 controller 实现
       const events = await this.aiService.agent.stream(input, {
         streamMode: 'messages',
       });
 
       for await (const [token, metadata] of events) {
-        // ✅ 严格按照 [token, metadata] 结构输出
-        const data = {
-          node: metadata.langgraph_node,
-          content: token.contentBlocks || token.content,
-          tool_calls: token.tool_calls,
-        };
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
+        // ✅ 严格过滤：如果是 tools 节点（工具执行结果），不响应给前端
+        // 这样 AI 能获取文档内容进行思考，但前端不会收到冗长的文档原文
+        if (metadata?.langgraph_node === 'tools') {
+          continue;
+        }
+
+        const content = token.contentBlocks || token.content;
+
+        // ✅ 避免重复包装：如果 content 是数组（通常是 contentBlocks），直接发送数组内的对象
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            res.write('event: message\n');
+            res.write(`data: ${JSON.stringify(block)}\n\n`);
+          }
+        } else if (typeof content === 'string' && content) {
+          // ✅ 只有当 content 是纯字符串且没有 contentBlocks 时，才进行包装
+          res.write('event: message\n');
+          res.write(
+            `data: ${JSON.stringify({ type: 'text', text: content })}\n\n`,
+          );
+        }
+
+        // 处理工具调用指令（这是 agent 节点发出的，告诉前端 AI 准备调用的工具）
+        if (token.tool_calls && token.tool_calls.length > 0) {
+          // 如果 contentBlocks 中已经包含了工具调用信息，这里可能会重复
+          // 但通常前端需要显式的 tool 类型来展示调用状态
+          res.write('event: message\n');
+          res.write(
+            `data: ${JSON.stringify({
+              type: 'tool',
+              tool_calls: token.tool_calls,
+            })}\n\n`,
+          );
+        }
       }
 
       res.write('data: [DONE]\n\n');
@@ -79,6 +104,9 @@ export class AiController {
     }
     let status = 500;
     let message = 'AI 调用失败';
+    if (err instanceof Error) {
+      message = err.message;
+    }
     if (err instanceof HttpException) {
       status = err.getStatus();
       const response = err.getResponse();
@@ -86,8 +114,6 @@ export class AiController {
         typeof response === 'string'
           ? response
           : (response as any).message || message;
-    } else if (err instanceof Error) {
-      message = err.message;
     }
     res.status(status).json({ code: status, message });
   }

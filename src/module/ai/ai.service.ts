@@ -27,6 +27,7 @@ export class AiService implements OnModuleInit {
   }
 
   init() {
+    // ✅ 严格按照用户提供的初始化方式，不添加多余配置
     const model = new ChatOllama({
       model: 'gpt-oss:120b-cloud',
       temperature: 0,
@@ -39,16 +40,11 @@ export class AiService implements OnModuleInit {
       searchDocsTool,
     ];
 
-    // ✅ 只负责创建 Agent
+    // ✅ 严格按照用户提供的 Agent 创建方式
     this.agent = createAgent({
       model: model,
       tools: tools,
-      systemPrompt: `你是一个医药系统的智能助手，你的职责是帮助用户查询系统数据。
-      ## 重要规则
-1. 当用户询问药品、仓库或库存相关问题时，你必须调用相应的工具来获取数据
-2. 禁止编造数据，必须基于工具返回的真实结果来回答
-3. 如果不确定用户指的是什么，可以先调用相关工具查看所有数据
-4. 回答要简洁明了，直接展示查询结果`,
+      systemPrompt: `你是专业的助手，回答必须基于搜索结果。`,
     });
   }
 }
