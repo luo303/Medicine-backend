@@ -9,6 +9,7 @@ import {
   Unique,
 } from 'typeorm';
 import { Drug } from './Drug';
+import { Warehouse } from './Warehouse';
 
 @Entity('inventory')
 @Unique([
@@ -57,4 +58,8 @@ export class Inventory {
   @ManyToOne(() => Drug, (drug) => drug.inventories)
   @JoinColumn({ name: 'drug_approval_no' })
   drug: Drug;
+
+  @ManyToOne(() => Warehouse, (warehouse) => warehouse.inventories)
+  @JoinColumn({ name: 'warehouse_code', referencedColumnName: 'code' })
+  warehouse: Warehouse;
 }

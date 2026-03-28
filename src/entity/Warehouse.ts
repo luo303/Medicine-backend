@@ -1,6 +1,7 @@
 // entity/Warehouse.ts
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { StorageLocation } from './StorageLocation';
+import { Inventory } from './Inventory';
 
 @Entity('warehouse')
 //仓库表
@@ -26,4 +27,7 @@ export class Warehouse {
     (storageLocation) => storageLocation.warehouse,
   )
   storageLocations: StorageLocation[];
+
+  @OneToMany(() => Inventory, (inventory) => inventory.warehouse)
+  inventories: Inventory[];
 }

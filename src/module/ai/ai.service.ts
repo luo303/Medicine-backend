@@ -50,14 +50,14 @@ export class AiService implements OnModuleInit {
   init() {
     // ✅ 严格按照用户提供的初始化方式，不添加多余配置
     const model = new ChatOllama({
-      model: 'gpt-oss:120b-cloud',
+      model: 'qwen3.5:397b-cloud',
       temperature: 0,
     });
 
     const tools = [
       ...createDrugTools(this.drugService),
       ...createWarehouseTools(this.warehouseService),
-      ...createInventoryTools(this.inventoryRepository, this.warehouseService),
+      ...createInventoryTools(this.inventoryRepository),
       ...createManufacturerTools(this.manufacturerService),
       ...createMedicalInstitutionTools(this.medicalInstitutionService),
       ...createPurchaseOrderTools(this.purchaseOrderRepository),
