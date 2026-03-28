@@ -7,6 +7,7 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    cors: true,
     logger:
       process.env.NODE_ENV === 'development'
         ? ['error', 'warn', 'log', 'debug', 'verbose']
