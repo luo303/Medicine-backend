@@ -3,3 +3,8 @@ export * from './drug.tools';
 export * from './warehouse.tools';
 export * from './inventory.tools';
 export * from './searchDocTool';
+export * from './manufacturer.tools';
+export * from './medicalInstitution.tools';
+export * from './purchaseOrder.tools';
+export * from './salesOrder.tools';
+export * from './storageLocation.tools';
