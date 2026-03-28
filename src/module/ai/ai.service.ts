@@ -10,10 +10,11 @@ import { createDrugTools } from './tools/drug.tools';
 import { createWarehouseTools } from './tools/warehouse.tools';
 import { createInventoryTools } from './tools/inventory.tools';
 import { searchDocsTool } from './tools/searchDocTool';
+import { IAgent } from './tools/tool.types';
 
 @Injectable()
 export class AiService implements OnModuleInit {
-  public agent: any;
+  public agent: IAgent;
 
   constructor(
     private readonly drugService: DrugService,
@@ -40,11 +41,12 @@ export class AiService implements OnModuleInit {
       searchDocsTool,
     ];
 
-    // ✅ 严格按照用户提供的 Agent 创建方式
+    // ✅ 只负责创建 Agent，严格按照用户提供的 Agent 创建方式
+    // 强制类型转换为 IAgent 以便在 Controller 中类型安全地使用
     this.agent = createAgent({
       model: model,
       tools: tools,
       systemPrompt: `你是专业的助手，回答必须基于搜索结果。`,
-    });
+    }) as unknown as IAgent;
   }
 }

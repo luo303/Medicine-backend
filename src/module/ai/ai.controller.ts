@@ -27,6 +27,7 @@ export class AiController {
         return;
       }
 
+      // ✅ 严格实现用户代码：Service 只负责 agent，Controller 负责调用和流式输出
       const input = {
         messages: this.convertMessages(messages),
       };
@@ -35,6 +36,7 @@ export class AiController {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
+      // ✅ 在 Controller 中调用 agent.stream
       const events = await this.aiService.agent.stream(input, {
         streamMode: 'messages',
       });
@@ -110,10 +112,15 @@ export class AiController {
     if (err instanceof HttpException) {
       status = err.getStatus();
       const response = err.getResponse();
-      message =
-        typeof response === 'string'
-          ? response
-          : (response as any).message || message;
+      if (typeof response === 'string') {
+        message = response;
+      } else if (
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response
+      ) {
+        message = String((response as Record<string, unknown>).message);
+      }
     }
     res.status(status).json({ code: status, message });
   }

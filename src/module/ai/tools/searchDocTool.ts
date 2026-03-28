@@ -1,11 +1,12 @@
+import { VectorStoreRetriever } from '@langchain/core/vectorstores';
 import { MakeRetriver } from './loader';
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 
-let retriever: any = null;
+let retriever: VectorStoreRetriever | null = null;
 
 export const searchDocsTool = tool(
-  async ({ query }) => {
+  async ({ query }: { query: string }) => {
     console.log(`\n[工具调用] 正在搜索: "${query}"`);
     // ✅ 优化：只在第一次调用时初始化，避免重复加载文档导致 fetch failed 或超时
     if (!retriever) {
