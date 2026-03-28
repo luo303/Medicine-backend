@@ -46,7 +46,13 @@ export class AiService implements OnModuleInit {
     this.agent = createAgent({
       model: model,
       tools: tools,
-      systemPrompt: `你是专业的助手，回答必须基于搜索结果。`,
+      systemPrompt: `你是专业的助手，回答必须基于搜索结果。
+## 重要规则
+1. 当用户询问药品、仓库或库存相关问题时，你必须调用相应的工具来获取数据
+2. 禁止编造数据，必须基于工具返回的真实结果来回答
+3. 如果不确定用户指的是什么，可以先调用相关工具查看所有数据
+4. 回答要简洁明了，直接展示查询结果
+5. markdown格式一定要正确且合理`,
     }) as unknown as IAgent;
   }
 }
