@@ -4,7 +4,11 @@ import { DrugService } from './drug.service';
 export class DrugController {
   constructor(private readonly drugService: DrugService) {}
   @Get()
-  findAll() {
-    return this.drugService.findAll();
+  async findAll() {
+    const drugs = await this.drugService.findAll();
+    return {
+      data: drugs,
+      message: '获取药品列表成功',
+    };
   }
 }

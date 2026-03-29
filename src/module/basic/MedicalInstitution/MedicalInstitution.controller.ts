@@ -7,7 +7,11 @@ export class MedicalInstitutionController {
     private readonly medicalInstitutionService: MedicalInstitutionService,
   ) {}
   @Get()
-  findAll() {
-    return this.medicalInstitutionService.findAll();
+  async findAll() {
+    const medicalInstitutions = await this.medicalInstitutionService.findAll();
+    return {
+      data: medicalInstitutions,
+      message: '获取医疗机构列表成功',
+    };
   }
 }

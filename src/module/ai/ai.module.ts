@@ -5,6 +5,7 @@ import { DrugModule } from '../basic/drug/drug.module';
 import { WarehouseModule } from '../basic/warehouse/warehouse.module';
 import { ManufacturerService } from '../basic/manufacturer/manufacturer.service';
 import { MedicalInstitutionService } from '../basic/MedicalInstitution/MedicalInstitution.service';
+import { KnowledgeModule } from '../knowledge/knowledge.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Inventory } from '@/entity/Inventory';
 import { Manufacturer } from '@/entity/Manufacturer';
@@ -20,6 +21,7 @@ import { StorageLocation } from '@/entity/StorageLocation';
   imports: [
     DrugModule,
     WarehouseModule,
+    KnowledgeModule,
     TypeOrmModule.forFeature([
       Inventory,
       Manufacturer,

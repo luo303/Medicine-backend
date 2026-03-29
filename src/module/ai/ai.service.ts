@@ -5,6 +5,7 @@ import { DrugService } from '../basic/drug/drug.service';
 import { WarehouseService } from '../basic/warehouse/warehouse.service';
 import { ManufacturerService } from '../basic/manufacturer/manufacturer.service';
 import { MedicalInstitutionService } from '../basic/MedicalInstitution/MedicalInstitution.service';
+import { KnowledgeService } from '../knowledge/knowledge.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Inventory } from '@/entity/Inventory';
 import { PurchaseOrder } from '@/entity/PurchaseOrder';
@@ -20,7 +21,7 @@ import {
   createPurchaseOrderTools,
   createSalesOrderTools,
   createStorageLocationTools,
-  searchDocsTool,
+  createKnowledgeTool,
 } from './tools';
 import { IAgent } from './tools/tool.types';
 
@@ -33,6 +34,7 @@ export class AiService implements OnModuleInit {
     private readonly warehouseService: WarehouseService,
     private readonly manufacturerService: ManufacturerService,
     private readonly medicalInstitutionService: MedicalInstitutionService,
+    private readonly knowledgeService: KnowledgeService,
     @InjectRepository(Inventory)
     private readonly inventoryRepository: Repository<Inventory>,
     @InjectRepository(PurchaseOrder)
@@ -63,7 +65,7 @@ export class AiService implements OnModuleInit {
       ...createPurchaseOrderTools(this.purchaseOrderRepository),
       ...createSalesOrderTools(this.salesOrderRepository),
       ...createStorageLocationTools(this.storageLocationRepository),
-      searchDocsTool,
+      ...createKnowledgeTool(this.knowledgeService),
     ];
 
     // ✅ 只负责创建 Agent，严格按照用户提供的 Agent 创建方式
@@ -74,14 +76,15 @@ export class AiService implements OnModuleInit {
       systemPrompt: `你是专业的助手，回答必须基于搜索结果。
 ## 重要规则
 1. 当用户询问药品、仓库、库存、生产企业、医疗机构、采购订单、销售订单或货位相关问题时，你必须调用相应的工具来获取数据
-2. 禁止编造数据，必须基于工具返回的真实结果来回答
-3. 如果不确定用户指的是什么，可以先调用相关工具查看所有数据
-4. 回答要简洁明了，直接展示查询结果
-5. markdown格式一定要正确且合理
-6. 当返回多列数据时，必须使用标准 Markdown 表格，表头、分隔线、数据行都要完整，禁止使用空格手动对齐列
-7. 当返回单条记录或明细较多时，优先使用项目列表，避免伪表格
-8. 不要输出不完整的表格片段，不要把表头和数据挤在同一行
-9. 不管什么结果一定要回复用户`,
+2. 当用户询问公司制度、流程、规范、文档内容，或者直接追问已上传文件里的内容时，你必须优先调用 query_knowledge_base 工具
+3. 禁止编造数据，必须基于工具返回的真实结果来回答
+4. 如果不确定用户指的是什么，可以先调用相关工具查看所有数据
+5. 回答要简洁明了，直接展示查询结果
+6. markdown 格式一定要正确且合理
+7. 当返回多列数据时，必须使用标准 Markdown 表格，表头、分隔线、数据行都要完整，禁止使用空格手动对齐列
+8. 当返回单条记录或明细较多时，优先使用项目列表，避免伪表格
+9. 不要输出不完整的表格片段，不要把表头和数据挤在同一行
+10. 不管什么结果一定要回复用户`,
     }) as unknown as IAgent;
   }
 }

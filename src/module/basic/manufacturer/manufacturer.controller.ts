@@ -5,7 +5,11 @@ import { ManufacturerService } from './manufacturer.service';
 export class ManufacturerController {
   constructor(private readonly manufacturerService: ManufacturerService) {}
   @Get()
-  findAll() {
-    return this.manufacturerService.findAll();
+  async findAll() {
+    const manufacturers = await this.manufacturerService.findAll();
+    return {
+      data: manufacturers,
+      message: '获取制造商列表成功',
+    };
   }
 }

@@ -12,6 +12,7 @@ import { TransformInterceptor } from './interceptor/transform.interceptor';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BasicModule } from './module/basic/basic.module';
 import { AiModule } from './module/ai/ai.module';
+import { KnowledgeModule } from './module/knowledge/knowledge.module';
 
 import { basic } from '../ormconfig';
 @Module({
@@ -26,6 +27,7 @@ import { basic } from '../ormconfig';
     UserModule,
     AuthModule,
     AiModule,
+    KnowledgeModule,
   ],
   controllers: [],
   providers: [

@@ -4,7 +4,11 @@ import { WarehouseService } from './warehouse.service';
 export class WarehouseController {
   constructor(private readonly warehouseService: WarehouseService) {}
   @Get()
-  findAll() {
-    return this.warehouseService.findAll();
+  async findAll() {
+    const warehouses = await this.warehouseService.findAll();
+    return {
+      data: warehouses,
+      message: '获取仓库列表成功',
+    };
   }
 }
