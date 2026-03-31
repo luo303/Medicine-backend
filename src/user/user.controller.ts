@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -24,12 +24,7 @@ export class UserController {
   }
 
   @Post()
-  addUser(): any {
-    const user = {
-      username: 'admin',
-      password: '123456',
-    } as User;
-
+  addUser(@Body() user: User): any {
     return this.userService.create(user);
   }
 }

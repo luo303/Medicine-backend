@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { User } from './user.entity';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { HttpException, HttpStatus } from '@nestjs/common';
 @Injectable()
 export class UserService {
@@ -40,7 +40,7 @@ export class UserService {
     }
     return user;
   }
-  async create(user: User) {
+  async create(user: DeepPartial<User>) {
     const userTmp = this.userRepository.create(user);
     const result = await this.userRepository.save(userTmp);
     return result;

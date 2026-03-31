@@ -5,7 +5,7 @@ import { SignDto } from '../dto/sign.dto';
 
 describe('AuthController（登录认证模块-控制器）', () => {
   let controller: AuthController;
-  let mockAuthService: Partial<AuthService>;
+  let mockAuthService: Pick<AuthService, 'signIn'>;
 
   beforeEach(async () => {
     // 模拟的AuthService -> 与后续的依赖项UserService等无关联的依赖项
@@ -35,11 +35,11 @@ describe('AuthController（登录认证模块-控制器）', () => {
   });
 
   it('鉴权-控制器-signin注册', async () => {
-    const res = controller.signIn({
+    const res = await controller.signIn({
       username: 'test',
       password: '123456',
     } as SignDto);
-    expect(await res).not.toBeNull();
-    expect((await res).token).toBe('token');
+    expect(res).not.toBeNull();
+    expect(res.data.token).toBe('token');
   });
 });
