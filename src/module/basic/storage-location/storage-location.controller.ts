@@ -10,6 +10,7 @@ import {
 import { StorageLocationService } from './storage-location.service';
 import { CreateStorageLocationDto } from './dto/create-storage-location.dto';
 import { UpdateStorageLocationDto } from './dto/update-storage-location.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('storage-location')
 export class StorageLocationController {
@@ -17,6 +18,7 @@ export class StorageLocationController {
     private readonly storageLocationService: StorageLocationService,
   ) {}
 
+  @Public()
   @Get()
   async findAll() {
     const storageLocations = await this.storageLocationService.findAll();
@@ -26,6 +28,7 @@ export class StorageLocationController {
     };
   }
 
+  @Public()
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const storageLocation = await this.storageLocationService.findOne(+id);

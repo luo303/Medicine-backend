@@ -10,11 +10,13 @@ import {
 import { DrugService } from './drug.service';
 import { CreateDrugDto } from './dto/create-drug.dto';
 import { UpdateDrugDto } from './dto/update-drug.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('drug')
 export class DrugController {
   constructor(private readonly drugService: DrugService) {}
 
+  @Public()
   @Get()
   async findAll() {
     const drugs = await this.drugService.findAll();
@@ -24,6 +26,7 @@ export class DrugController {
     };
   }
 
+  @Public()
   @Get(':approval_no')
   async findOne(@Param('approval_no') approval_no: string) {
     const drug = await this.drugService.findOne(approval_no);

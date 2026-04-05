@@ -10,11 +10,13 @@ import {
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
+  @Public()
   @Get()
   async findAll() {
     const inventoryList = await this.inventoryService.findAll();
@@ -24,6 +26,7 @@ export class InventoryController {
     };
   }
 
+  @Public()
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const inventory = await this.inventoryService.findOne(+id);

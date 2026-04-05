@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -20,12 +20,14 @@ import {
   CreateSalesOutboundDto,
   UpdateSalesOutboundDto,
 } from './dto/sales-outbound.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   // 销售订单接口
+  @Public()
   @Get('order')
   async findAllOrders() {
     const orders = await this.salesService.findAllOrders();
@@ -35,6 +37,7 @@ export class SalesController {
     };
   }
 
+  @Public()
   @Get('order/:order_no')
   async findOneOrder(@Param('order_no') order_no: string) {
     const order = await this.salesService.findOneOrder(order_no);
@@ -74,6 +77,7 @@ export class SalesController {
   }
 
   // 销售明细接口
+  @Public()
   @Get('detail')
   async findAllDetails() {
     const details = await this.salesService.findAllDetails();
@@ -83,6 +87,7 @@ export class SalesController {
     };
   }
 
+  @Public()
   @Get('detail/:id')
   async findOneDetail(@Param('id') id: string) {
     const detail = await this.salesService.findOneDetail(+id);
@@ -122,6 +127,7 @@ export class SalesController {
   }
 
   // 销售出库接口
+  @Public()
   @Get('outbound')
   async findAllOutbounds() {
     const outbounds = await this.salesService.findAllOutbounds();
@@ -131,6 +137,7 @@ export class SalesController {
     };
   }
 
+  @Public()
   @Get('outbound/:id')
   async findOneOutbound(@Param('id') id: string) {
     const outbound = await this.salesService.findOneOutbound(+id);

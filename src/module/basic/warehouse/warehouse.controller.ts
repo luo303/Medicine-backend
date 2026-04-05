@@ -10,11 +10,13 @@ import {
 import { WarehouseService } from './warehouse.service';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('warehouse')
 export class WarehouseController {
   constructor(private readonly warehouseService: WarehouseService) {}
 
+  @Public()
   @Get()
   async findAll() {
     const warehouses = await this.warehouseService.findAll();
@@ -24,6 +26,7 @@ export class WarehouseController {
     };
   }
 
+  @Public()
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const warehouse = await this.warehouseService.findOne(+id);

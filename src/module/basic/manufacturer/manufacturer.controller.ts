@@ -10,11 +10,13 @@ import {
 import { ManufacturerService } from './manufacturer.service';
 import { CreateManufacturerDto } from './dto/create-manufacturer.dto';
 import { UpdateManufacturerDto } from './dto/update-manufacturer.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('manufacturer')
 export class ManufacturerController {
   constructor(private readonly manufacturerService: ManufacturerService) {}
 
+  @Public()
   @Get()
   async findAll() {
     const manufacturers = await this.manufacturerService.findAll();
@@ -24,6 +26,7 @@ export class ManufacturerController {
     };
   }
 
+  @Public()
   @Get(':approval_no')
   async findOne(@Param('approval_no') approval_no: string) {
     const manufacturer = await this.manufacturerService.findOne(approval_no);

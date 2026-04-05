@@ -10,6 +10,7 @@ import {
 import { MedicalInstitutionService } from './MedicalInstitution.service';
 import { CreateMedicalInstitutionDto } from './dto/create-medical-institution.dto';
 import { UpdateMedicalInstitutionDto } from './dto/update-medical-institution.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('MedicalInstitution')
 export class MedicalInstitutionController {
@@ -17,6 +18,7 @@ export class MedicalInstitutionController {
     private readonly medicalInstitutionService: MedicalInstitutionService,
   ) {}
 
+  @Public()
   @Get()
   async findAll() {
     const medicalInstitutions = await this.medicalInstitutionService.findAll();
@@ -26,6 +28,7 @@ export class MedicalInstitutionController {
     };
   }
 
+  @Public()
   @Get(':approval_no')
   async findOne(@Param('approval_no') approval_no: string) {
     const institution =

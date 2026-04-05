@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -20,12 +20,14 @@ import {
   CreatePurchaseStorageDto,
   UpdatePurchaseStorageDto,
 } from './dto/purchase-storage.dto';
+import { Public } from '@/custom/Public';
 
 @Controller('purchase')
 export class PurchaseController {
   constructor(private readonly purchaseService: PurchaseService) {}
 
   // 采购订单接口
+  @Public()
   @Get('order')
   async findAllOrders() {
     const orders = await this.purchaseService.findAllOrders();
@@ -35,6 +37,7 @@ export class PurchaseController {
     };
   }
 
+  @Public()
   @Get('order/:order_no')
   async findOneOrder(@Param('order_no') order_no: string) {
     const order = await this.purchaseService.findOneOrder(order_no);
@@ -74,6 +77,7 @@ export class PurchaseController {
   }
 
   // 采购明细接口
+  @Public()
   @Get('detail')
   async findAllDetails() {
     const details = await this.purchaseService.findAllDetails();
@@ -83,6 +87,7 @@ export class PurchaseController {
     };
   }
 
+  @Public()
   @Get('detail/:id')
   async findOneDetail(@Param('id') id: string) {
     const detail = await this.purchaseService.findOneDetail(+id);
@@ -122,6 +127,7 @@ export class PurchaseController {
   }
 
   // 采购入库接口
+  @Public()
   @Get('storage')
   async findAllStorages() {
     const storages = await this.purchaseService.findAllStorages();
@@ -131,6 +137,7 @@ export class PurchaseController {
     };
   }
 
+  @Public()
   @Get('storage/:id')
   async findOneStorage(@Param('id') id: string) {
     const storage = await this.purchaseService.findOneStorage(+id);
