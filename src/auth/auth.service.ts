@@ -17,7 +17,7 @@ export class AuthService {
       const user = await this.usersService.findOne(username, pass);
       if (!user) {
         console.log('用户不存在');
-        throw new HttpException('用户不存在', 200);
+        throw new HttpException('用户不存在', 400);
       }
       const payload = { sub: user.id, username: user.username };
       const token = await this.jwtService.signAsync(payload);
@@ -26,7 +26,7 @@ export class AuthService {
       };
     } catch (error) {
       console.log(error);
-      throw new HttpException('登录失败，请检查用户名和密码', 200);
+      throw new HttpException('登录失败，请检查用户名和密码', 400);
     }
   }
   async signUp(signUpDto: SignDto) {
