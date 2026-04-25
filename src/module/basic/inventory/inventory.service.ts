@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inventory } from '@/entity/Inventory';
@@ -20,11 +20,15 @@ export class InventoryService {
   }
 
   // 根据 ID 查询库存
-  findOne(id: number) {
-    return this.inventoryRepository.findOne({
+  async findOne(id: number) {
+    const inventory = await this.inventoryRepository.findOne({
       where: { id },
       relations: ['drug', 'warehouse'],
     });
+    if (!inventory) {
+      throw new NotFoundException('未找到该库存记录');
+    }
+    return inventory;
   }
 
   // 根据仓号、货位号、药品号、批号查询库存
@@ -53,17 +57,19 @@ export class InventoryService {
 
   // 更新库存
   async update(id: number, updateDto: UpdateInventoryDto) {
-    await this.inventoryRepository.update(id, updateDto);
+    const result = await this.inventoryRepository.update(id, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该库存记录，修改失败');
+    }
     return this.findOne(id);
   }
 
   // 删除库存记录
   async remove(id: number) {
-    const inventory = await this.findOne(id);
-    if (inventory) {
-      await this.inventoryRepository.remove(inventory);
-      return true;
+    const result = await this.inventoryRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该库存记录，删除失败');
     }
-    return false;
+    return true;
   }
 }

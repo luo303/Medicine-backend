@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Warehouse } from '@/entity/Warehouse';
@@ -19,7 +19,11 @@ export class WarehouseService {
 
   // 根据 ID 查询仓库
   async findOne(id: number) {
-    return this.warehouseRepository.findOne({ where: { id } });
+    const warehouse = await this.warehouseRepository.findOne({ where: { id } });
+    if (!warehouse) {
+      throw new NotFoundException('未找到该仓库');
+    }
+    return warehouse;
   }
 
   // 根据编号查询仓库
@@ -35,17 +39,19 @@ export class WarehouseService {
 
   // 更新仓库
   async update(id: number, updateDto: UpdateWarehouseDto) {
-    await this.warehouseRepository.update(id, updateDto);
+    const result = await this.warehouseRepository.update(id, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该仓库，修改失败');
+    }
     return this.findOne(id);
   }
 
   // 删除仓库
   async remove(id: number) {
-    const warehouse = await this.findOne(id);
-    if (warehouse) {
-      await this.warehouseRepository.remove(warehouse);
-      return true;
+    const result = await this.warehouseRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该仓库，删除失败');
     }
-    return false;
+    return true;
   }
 }

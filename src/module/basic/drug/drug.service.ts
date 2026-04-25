@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Drug } from '@/entity/Drug';
@@ -20,7 +20,11 @@ export class DrugService {
 
   // 根据批准号查询药品
   async findOne(approval_no: string) {
-    return this.drugRepository.findOne({ where: { approval_no } });
+    const drug = await this.drugRepository.findOne({ where: { approval_no } });
+    if (!drug) {
+      throw new NotFoundException('未找到该药品');
+    }
+    return drug;
   }
 
   // 新增药品
@@ -31,17 +35,19 @@ export class DrugService {
 
   // 更新药品
   async update(approval_no: string, updateDrugDto: UpdateDrugDto) {
-    await this.drugRepository.update(approval_no, updateDrugDto);
+    const result = await this.drugRepository.update(approval_no, updateDrugDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该药品，修改失败');
+    }
     return this.findOne(approval_no);
   }
 
   // 删除药品
   async remove(approval_no: string) {
-    const drug = await this.findOne(approval_no);
-    if (drug) {
-      await this.drugRepository.remove(drug);
-      return true;
+    const result = await this.drugRepository.delete(approval_no);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该药品，删除失败');
     }
-    return false;
+    return true;
   }
 }

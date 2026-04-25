@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { User } from './user.entity';
@@ -47,10 +47,16 @@ export class UserService {
   }
   async update(id: number, user: Partial<User>) {
     const result = await this.userRepository.update(id, user);
+    if (!result.affected) {
+      throw new NotFoundException('用户不存在，更新失败');
+    }
     return result;
   }
   async remove(id: number) {
     const result = await this.userRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('用户不存在，删除失败');
+    }
     return result;
   }
 }

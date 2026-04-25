@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PurchaseOrder } from '@/entity/PurchaseOrder';
@@ -35,11 +35,15 @@ export class PurchaseService {
     });
   }
 
-  findOneOrder(order_no: string) {
-    return this.purchaseOrderRepository.findOne({
+  async findOneOrder(order_no: string) {
+    const order = await this.purchaseOrderRepository.findOne({
       where: { order_no },
       relations: ['purchaseDetails', 'purchaseStorages', 'manufacturer'],
     });
+    if (!order) {
+      throw new NotFoundException('未找到该采购订单');
+    }
+    return order;
   }
 
   createOrder(createDto: CreatePurchaseOrderDto) {
@@ -48,17 +52,22 @@ export class PurchaseService {
   }
 
   async updateOrder(order_no: string, updateDto: UpdatePurchaseOrderDto) {
-    await this.purchaseOrderRepository.update(order_no, updateDto);
+    const result = await this.purchaseOrderRepository.update(
+      order_no,
+      updateDto,
+    );
+    if (!result.affected) {
+      throw new NotFoundException('未找到该采购订单，修改失败');
+    }
     return this.findOneOrder(order_no);
   }
 
   async removeOrder(order_no: string) {
-    const order = await this.findOneOrder(order_no);
-    if (order) {
-      await this.purchaseOrderRepository.remove(order);
-      return true;
+    const result = await this.purchaseOrderRepository.delete(order_no);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该采购订单，删除失败');
     }
-    return false;
+    return true;
   }
 
   // 采购明细 (PurchaseDetail) CRUD
@@ -68,11 +77,15 @@ export class PurchaseService {
     });
   }
 
-  findOneDetail(id: number) {
-    return this.purchaseDetailRepository.findOne({
+  async findOneDetail(id: number) {
+    const detail = await this.purchaseDetailRepository.findOne({
       where: { id },
       relations: ['purchaseOrder', 'drug'],
     });
+    if (!detail) {
+      throw new NotFoundException('未找到该采购明细');
+    }
+    return detail;
   }
 
   createDetail(createDto: CreatePurchaseDetailDto) {
@@ -81,17 +94,19 @@ export class PurchaseService {
   }
 
   async updateDetail(id: number, updateDto: UpdatePurchaseDetailDto) {
-    await this.purchaseDetailRepository.update(id, updateDto);
+    const result = await this.purchaseDetailRepository.update(id, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该采购明细，修改失败');
+    }
     return this.findOneDetail(id);
   }
 
   async removeDetail(id: number) {
-    const detail = await this.findOneDetail(id);
-    if (detail) {
-      await this.purchaseDetailRepository.remove(detail);
-      return true;
+    const result = await this.purchaseDetailRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该采购明细，删除失败');
     }
-    return false;
+    return true;
   }
 
   // 采购入库 (PurchaseStorage) CRUD
@@ -101,11 +116,15 @@ export class PurchaseService {
     });
   }
 
-  findOneStorage(id: number) {
-    return this.purchaseStorageRepository.findOne({
+  async findOneStorage(id: number) {
+    const storage = await this.purchaseStorageRepository.findOne({
       where: { id },
       relations: ['purchaseOrder', 'drug', 'manufacturer'],
     });
+    if (!storage) {
+      throw new NotFoundException('未找到该采购入库记录');
+    }
+    return storage;
   }
 
   createStorage(createDto: CreatePurchaseStorageDto) {
@@ -114,16 +133,18 @@ export class PurchaseService {
   }
 
   async updateStorage(id: number, updateDto: UpdatePurchaseStorageDto) {
-    await this.purchaseStorageRepository.update(id, updateDto);
+    const result = await this.purchaseStorageRepository.update(id, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该采购入库记录，修改失败');
+    }
     return this.findOneStorage(id);
   }
 
   async removeStorage(id: number) {
-    const storage = await this.findOneStorage(id);
-    if (storage) {
-      await this.purchaseStorageRepository.remove(storage);
-      return true;
+    const result = await this.purchaseStorageRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该采购入库记录，删除失败');
     }
-    return false;
+    return true;
   }
 }

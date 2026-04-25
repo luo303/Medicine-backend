@@ -1,4 +1,4 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SalesOrder } from '@/entity/SalesOrder';
@@ -35,11 +35,15 @@ export class SalesService {
     });
   }
 
-  findOneOrder(order_no: string) {
-    return this.salesOrderRepository.findOne({
+  async findOneOrder(order_no: string) {
+    const order = await this.salesOrderRepository.findOne({
       where: { order_no },
       relations: ['institution', 'salesDetails', 'salesDetails.drug'],
     });
+    if (!order) {
+      throw new NotFoundException('未找到该销售订单');
+    }
+    return order;
   }
 
   createOrder(createDto: CreateSalesOrderDto) {
@@ -48,17 +52,19 @@ export class SalesService {
   }
 
   async updateOrder(order_no: string, updateDto: UpdateSalesOrderDto) {
-    await this.salesOrderRepository.update(order_no, updateDto);
+    const result = await this.salesOrderRepository.update(order_no, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该销售订单，修改失败');
+    }
     return this.findOneOrder(order_no);
   }
 
   async removeOrder(order_no: string) {
-    const order = await this.findOneOrder(order_no);
-    if (order) {
-      await this.salesOrderRepository.remove(order);
-      return true;
+    const result = await this.salesOrderRepository.delete(order_no);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该销售订单，删除失败');
     }
-    return false;
+    return true;
   }
 
   // 销售明细 CRUD
@@ -68,11 +74,15 @@ export class SalesService {
     });
   }
 
-  findOneDetail(id: number) {
-    return this.salesDetailRepository.findOne({
+  async findOneDetail(id: number) {
+    const detail = await this.salesDetailRepository.findOne({
       where: { id },
       relations: ['salesOrder', 'drug'],
     });
+    if (!detail) {
+      throw new NotFoundException('未找到该销售明细');
+    }
+    return detail;
   }
 
   createDetail(createDto: CreateSalesDetailDto) {
@@ -81,17 +91,19 @@ export class SalesService {
   }
 
   async updateDetail(id: number, updateDto: UpdateSalesDetailDto) {
-    await this.salesDetailRepository.update(id, updateDto);
+    const result = await this.salesDetailRepository.update(id, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该销售明细，修改失败');
+    }
     return this.findOneDetail(id);
   }
 
   async removeDetail(id: number) {
-    const detail = await this.findOneDetail(id);
-    if (detail) {
-      await this.salesDetailRepository.remove(detail);
-      return true;
+    const result = await this.salesDetailRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该销售明细，删除失败');
     }
-    return false;
+    return true;
   }
 
   // 销售出库 CRUD
@@ -101,11 +113,15 @@ export class SalesService {
     });
   }
 
-  findOneOutbound(id: number) {
-    return this.salesOutboundRepository.findOne({
+  async findOneOutbound(id: number) {
+    const outbound = await this.salesOutboundRepository.findOne({
       where: { id },
       relations: ['salesOrder', 'institution', 'drug'],
     });
+    if (!outbound) {
+      throw new NotFoundException('未找到该销售出库记录');
+    }
+    return outbound;
   }
 
   createOutbound(createDto: CreateSalesOutboundDto) {
@@ -114,16 +130,18 @@ export class SalesService {
   }
 
   async updateOutbound(id: number, updateDto: UpdateSalesOutboundDto) {
-    await this.salesOutboundRepository.update(id, updateDto);
+    const result = await this.salesOutboundRepository.update(id, updateDto);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该销售出库记录，修改失败');
+    }
     return this.findOneOutbound(id);
   }
 
   async removeOutbound(id: number) {
-    const outbound = await this.findOneOutbound(id);
-    if (outbound) {
-      await this.salesOutboundRepository.remove(outbound);
-      return true;
+    const result = await this.salesOutboundRepository.delete(id);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该销售出库记录，删除失败');
     }
-    return false;
+    return true;
   }
 }

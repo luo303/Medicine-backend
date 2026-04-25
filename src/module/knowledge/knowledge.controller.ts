@@ -9,7 +9,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { KnowledgeService } from './knowledge.service';
-import { Public } from '@/custom/Public';
 
 @Controller('knowledge')
 export class KnowledgeController {
@@ -71,7 +70,6 @@ export class KnowledgeController {
   /**
    * 获取文件列表
    */
-  @Public()
   @Get('files')
   getFileList(): {
     success: boolean;

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Manufacturer } from '@/entity/Manufacturer';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,8 +18,14 @@ export class ManufacturerService {
   }
 
   // 根据批准号查询生产企业
-  async findOne(approval_no: string): Promise<Manufacturer | null> {
-    return this.manufacturerRepository.findOne({ where: { approval_no } });
+  async findOne(approval_no: string): Promise<Manufacturer> {
+    const manufacturer = await this.manufacturerRepository.findOne({
+      where: { approval_no },
+    });
+    if (!manufacturer) {
+      throw new NotFoundException('未找到该生产企业');
+    }
+    return manufacturer;
   }
 
   // 新增生产企业
@@ -32,18 +38,23 @@ export class ManufacturerService {
   async update(
     approval_no: string,
     updateDto: UpdateManufacturerDto,
-  ): Promise<Manufacturer | null> {
-    await this.manufacturerRepository.update(approval_no, updateDto);
+  ): Promise<Manufacturer> {
+    const result = await this.manufacturerRepository.update(
+      approval_no,
+      updateDto,
+    );
+    if (!result.affected) {
+      throw new NotFoundException('未找到该生产企业，修改失败');
+    }
     return this.findOne(approval_no);
   }
 
   // 删除生产企业
   async remove(approval_no: string): Promise<boolean> {
-    const manufacturer = await this.findOne(approval_no);
-    if (manufacturer) {
-      await this.manufacturerRepository.remove(manufacturer);
-      return true;
+    const result = await this.manufacturerRepository.delete(approval_no);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该生产企业，删除失败');
     }
-    return false;
+    return true;
   }
 }

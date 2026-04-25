@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MedicalInstitution } from '@/entity/MedicalInstitution';
 import { Repository } from 'typeorm';
@@ -18,10 +18,14 @@ export class MedicalInstitutionService {
   }
 
   // 根据批准号查询医疗机构
-  findOne(approval_no: string) {
-    return this.medicalInstitutionRepository.findOne({
+  async findOne(approval_no: string) {
+    const institution = await this.medicalInstitutionRepository.findOne({
       where: { approval_no },
     });
+    if (!institution) {
+      throw new NotFoundException('未找到该医疗机构');
+    }
+    return institution;
   }
 
   // 创建医疗机构
@@ -32,17 +36,22 @@ export class MedicalInstitutionService {
 
   // 更新医疗机构
   async update(approval_no: string, updateDto: UpdateMedicalInstitutionDto) {
-    await this.medicalInstitutionRepository.update(approval_no, updateDto);
+    const result = await this.medicalInstitutionRepository.update(
+      approval_no,
+      updateDto,
+    );
+    if (!result.affected) {
+      throw new NotFoundException('未找到该医疗机构，修改失败');
+    }
     return this.findOne(approval_no);
   }
 
   // 删除医疗机构
   async remove(approval_no: string) {
-    const institution = await this.findOne(approval_no);
-    if (institution) {
-      await this.medicalInstitutionRepository.remove(institution);
-      return true;
+    const result = await this.medicalInstitutionRepository.delete(approval_no);
+    if (!result.affected) {
+      throw new NotFoundException('未找到该医疗机构，删除失败');
     }
-    return false;
+    return true;
   }
 }
