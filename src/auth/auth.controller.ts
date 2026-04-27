@@ -1,7 +1,15 @@
-import { Body, Controller, Post, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from '../custom/Public';
 import { SignDto } from './dto/sign.dto';
+import type { Response } from 'express';
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
@@ -9,7 +17,10 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('/login')
-  async signIn(@Body() signInDto: SignDto) {
+  async signIn(
+    @Body() signInDto: SignDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     console.log(signInDto);
 
     const result = await this.authService.signIn(
@@ -17,8 +28,15 @@ export class AuthController {
       signInDto.password,
     );
     console.log(result);
+    res.cookie('token', result.token, {
+      httpOnly: true,
+      maxAge: 60 * 60 * 24 * 70,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
     return {
-      data: result,
+      code: 200,
+      data: null,
       message: '登录成功',
     };
   }

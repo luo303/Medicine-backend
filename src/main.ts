@@ -7,11 +7,22 @@ import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    cors: true,
     logger:
       process.env.NODE_ENV === 'development'
         ? ['error', 'warn', 'log', 'debug', 'verbose']
         : ['error', 'warn'],
+  });
+  app.enableCors({
+    origin: (
+      origin,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      // 允许所有域名跨域
+      callback(null, true);
+    },
+    credentials: true, // 必须，允许跨域带 cookie
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
   app.setGlobalPrefix('api');
   // app.useGlobalFilters(new AllExceptionsFilter(app.get(HttpAdapterHost)));

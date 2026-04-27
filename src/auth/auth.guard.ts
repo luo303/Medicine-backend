@@ -10,7 +10,9 @@ import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../custom/Public';
 
 type JwtPayload = Record<string, unknown>;
-type AuthRequest = Request & { user?: JwtPayload };
+interface AuthRequest extends Request {
+  user?: JwtPayload;
+}
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
@@ -28,26 +30,21 @@ export class AuthGuard implements CanActivate {
       return true;
     }
     const request = context.switchToHttp().getRequest<AuthRequest>();
-    const Authorization = this.extractTokenFromHeader(request);
-    if (!Authorization) {
+    const cookie = request.headers?.cookie || '';
+    const token = cookie
+      .split('; ')
+      .find((row) => row.startsWith('token='))
+      ?.split('=')[1];
+    if (!token) {
+      console.log('token not found');
       throw new UnauthorizedException();
     }
     try {
-      // 💡 Here the JWT secret key that's used for verifying the payload
-      // is the key that was passsed in the JwtModule
-      const payload =
-        await this.jwtService.verifyAsync<JwtPayload>(Authorization);
-      // 💡 We're assigning the payload to the request object here
-      // so that we can access it in our route handlers
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token);
       request.user = payload;
     } catch {
       throw new UnauthorizedException();
     }
     return true;
-  }
-
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
   }
 }
