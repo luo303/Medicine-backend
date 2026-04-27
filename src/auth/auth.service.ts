@@ -40,4 +40,11 @@ export class AuthService {
       throw new HttpException('注册失败，请检查用户名和密码', 200);
     }
   }
+
+  isAuthenticated() {
+    return {
+      data: null,
+      message: '用户已认证',
+    };
+  }
 }

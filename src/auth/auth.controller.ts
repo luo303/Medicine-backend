@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Post,
+  Get,
   HttpCode,
   HttpStatus,
   Res,
@@ -51,5 +52,13 @@ export class AuthController {
       data: result,
       message: '注册成功',
     };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('/isAuthenticated')
+  //直接借助guard判断是否认证
+  isAuthenticated() {
+    const result = this.authService.isAuthenticated();
+    return result;
   }
 }
